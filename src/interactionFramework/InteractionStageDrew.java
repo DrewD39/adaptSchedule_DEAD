@@ -132,20 +132,6 @@ public class InteractionStageDrew implements Runnable {
 		initialDTP = dtp.clone();
 		
 		
-//		try {
-//			Thread.sleep(1000);
-//			System.out.print("test: ");
-//			System.out.println(server.test);
-//			while(true) {
-//				System.out.println(server.test);
-//				if (10023 == 0) { break; }
-//				Thread.sleep(100);
-//			} 
-//		} catch (InterruptedException e1) {
-//			// TODO Auto-generated catch block
-//			e1.printStackTrace();
-//		}
-		
 		
 		boolean flag = true;
 		while(flag){
@@ -293,50 +279,11 @@ public class InteractionStageDrew implements Runnable {
 						}
 					}
 				}
-				//dtp.checkBookends(20);
-				
-				// wait until the server gets a response from the client before continuing
-//				File tmpDir = new File("JSON_body.json");
-//				while( !tmpDir.exists() ) {
-//					tmpDir = new File("JSON_body.json");
-//				}
-//				JSONParser parser = new JSONParser();
-//				Object fileIN = parser.parse(new FileReader("JSON_body.json"));
-//				if (!tmpDir.delete()) {
-//					System.out.println("Error: Failed to delete file.");
-//				}
 				
 				jsonIN = getNextRequest();
 				String str = (String) jsonIN.get("value");
 				
 				
-				
-				/*synchronized(server.cmdVal) {
-					int cmdLen = server.cmdVal.length();
-					while (server.cmdVal.length() <= cmdLen) { // until cmdVal is altered (increased in size)
-						server.cmdVal.wait();
-					  }
-				}*/
-				//server.cmdVal = "";
-				/*while(server.getCmdVal().length() == 0) {
-					Thread.sleep(500);
-				}*/
-				
-				//String str = server.waitForValidCmd();
-				
-				//System.out.println("Command recieved. Now processing.");
-				//String str = server.getCmdVal();
-				/*String str = cin.next();*/ // Commented out by Drew
-				
-//				if(str.equalsIgnoreCase("A")){
-//					advancedSelection();
-//					//TODO: this isn't quite right because there's a way to not make any changes in advanced selection.
-//					continue;
-//				}
-//				else if(str.equalsIgnoreCase("c") && numAgents > 1){
-//					getAgentSelection();
-//					continue;
-//				}
 //				//TODO: look at selection stack stuff w.r.t. multiple agents and switching between them
 //				else if(str.equalsIgnoreCase("U")){
 				if(str.equalsIgnoreCase("U")){
@@ -588,130 +535,14 @@ public class InteractionStageDrew implements Runnable {
 				dtp.simplifyMinNetIntervals();
 				return;
 				}
+			
+
 			// ED: The below is old code from Lynn, intended to split the ongoing activity and insert the
 			//  sporadic activity into its place, kinda - some stuff was hardwired kindof funny.  So, not
 			//  doing this for now, and just always pasting the sporadic activity at the end of the activity
 			//  the sporadic event occurred within
-			else {
-			int se_start = Generics.fromTimeFormat(time);
-			int end_time = se_start;
-			int start_time = prevSystemTime.get(0);
-			int dur = end_time - start_time;
-			int last_act_dur = getSystemTime() - prevSystemTime.get(0);
-			printToClient("Inserting sporadic event in beginning at " + time + "\n" );
-			printToClient("Current time: 6:50.\n");
-			int start_time2 = end_time + SP_DUR;
-			int end_time2 = start_time2 + (last_act_dur - dur);
-			int dur2 = end_time2 - start_time2;
-			//change the problem to reflect that the sporadic event occurred at time se_start.
-			// this should split last_activity into two portions. 
-			
-			//save additional constraints and fixed timepoints from the previous DTP
-				// we want to grab the problem before last_act has actually been performed
-				// otherwise I think things will break...
-			Collection<DisjunctiveTemporalConstraint> constrToSave = prevDTP.getAdditionalConstraints();
-			ArrayList<Timepoint> fixedToSave = prevDTP.getFixedTimepoints();
-			//advance the new DTP to the previous time
-			// perform last_act_part1, insert 20 min idle (or add in new event to XML file?)
-			// perform last_act_part2, and also advance systemTime.
-			
-			//DisjunctiveTemporalProblem split_dtp = new ProblemLoader().loadDTPFromFile(problemFile);
-			DisjunctiveTemporalProblem split_dtp = initialDTP.clone();
-			//rename activity A start and end.
-			Timepoint orig_s = split_dtp.getTimepoint(last_act + "_S");
-			Timepoint orig_e = split_dtp.getTimepoint(last_act + "_E");
-			split_dtp.updateTimepointName(orig_s, last_act+"1_S");
-			split_dtp.updateTimepointName(orig_e, last_act+"1_E");
-			orig_s.changeName(last_act + "1_S");
-			orig_e.changeName(last_act + "1_E");
-			
-			//add in a new activity for last_act2
-			Timepoint new_s = new Timepoint(last_act+"2_S",1);
-			Timepoint new_e = new Timepoint(last_act+"2_E", 1);
-			split_dtp.addTimepoint(new_s);
-			split_dtp.addTimepoint(new_e);
-			
-			//first remove old duration constraint on last_act
-			split_dtp.removeDurationConstraint(last_act);
-			printToClient("AFTER REMOVING DURATIONS:");
-			printToClient(split_dtp.getTempConstraints().toString());
-			//update constraint set to change all of the originalConstraints to respect new TP names.
-			for(DisjunctiveTemporalConstraint dtc : split_dtp.getTempConstraints()){
-				for(TemporalDifference td: dtc.getTemporalDifferences()){
-					//if(td.source.getName().equals(last_act + "1_S")) td.updateSource(orig_s);
-					if(td.source.getName().equals(last_act + "1_E")) td.updateSource(new_e);
-					//if(td.destination.getName().equals(last_act + "1_S")) td.updateDestination(orig_s);
-					if(td.destination.getName().equals(last_act + "1_E")) td.updateDestination(new_e);
-					
-					
-				}
-				//System.out.println("dtc is now: " + dtc.toString());
-			    }
-			
-			
-			// do we need to update the additional constraints we saved to get rid of the A timepoints in the same way??
-			// the code for this is here. may need to be commented out.
-			for(DisjunctiveTemporalConstraint dtc : constrToSave){
-				for(TemporalDifference td: dtc.getTemporalDifferences()){
-					if(td.source.getName().equals(last_act + "_S")) td.updateSource(orig_s);
-					if(td.source.getName().equals(last_act + "_E")) td.updateSource(new_e);
-					if(td.destination.getName().equals(last_act + "_S")) td.updateDestination(orig_s);
-					if(td.destination.getName().equals(last_act + "_E")) td.updateDestination(new_e);
-				}
-			}
-			
-			//add duration constraints for the new split activities
-			split_dtp.addDurationConstraint(orig_s, orig_e, dur);
-			split_dtp.addDurationConstraint(new_s, new_e, dur2);
-			//split_dtp.addOrderingConstraint(orig_e.getName(), new_s.getName(), 0, Integer.MAX_VALUE);
-			
-			//what happens if wetry to solve this new problem as is
-			split_dtp.enumerateSolutions(0);
-			split_dtp.simplifyMinNetIntervals();
-			printToClient("DTP with modifications before adding in old constraints");
-			Generics.printDTP(split_dtp);
-			
-			// now we need to bring the updated DTP back to the systemTime before last_act
-			split_dtp.addAdditionalConstraints(constrToSave);
-			split_dtp.enumerateSolutions(prevSystemTime.get(0));
-			split_dtp.simplifyMinNetIntervals();
-			printToClient("DTP BEFORE performing the split activities");
-			Generics.printDTP(split_dtp);
+			/// Drew: ^^ I deleted all the code this comment references to in a clean up attempt, as I was unlikely to reimplement it.
 
-			// remove null constraints from additional constraints...
-			ArrayList<Integer> toRemove = new ArrayList<Integer>();
-			for(int i = 0; i < split_dtp.getAdditionalConstraints().size(); i++){
-				DisjunctiveTemporalConstraint dtc = split_dtp.getAdditionalConstraints().get(i);
-				if(dtc == null) toRemove.add(i);
-			}
-			printToClient("Removing dtcs: " + toRemove);
-			for(int i : toRemove) split_dtp.getAdditionalConstraints().remove(i);
-			
-			split_dtp.addFixedTimepoints(fixedToSave);
-			dtp = split_dtp.clone();
-			setSystemTime(prevSystemTime.get(0));
-			// now we need to perform last_act1 
-/**
-			split_dtp.executeAndAdvance(-start_time, orig_s.getName(), -end_time, orig_e.getName(), true, dur, true);
-			
-			dtp.enumerateSolutions(end_time);
-			dtp.simplifyMinNetIntervals();
-			System.out.println("after performing first part of last_act");
-			Generics.printDTP(split_dtp);
-			
-			split_dtp.advanceToTime(end_time, SP_DUR, true); // insert sporadic activity 
-			// perform last_act2 now that we've inserted idle.
-			
-			split_dtp.executeAndAdvance(start_time2, new_s.getName(), end_time2, new_e.getName(), true, dur2, true);
-			split_dtp.simplifyMinNetIntervals();
-			incrementSystemTime(SP_DUR); //increment system time by duration of SE
-			
-			dtp = split_dtp.clone();
-			System.out.println("AFTER performing SPLITTING");
-			Generics.printDTP(split_dtp);
-		**/
-			return;
-			}
 		}else {  //if(resp.equalsIgnoreCase("n")){
 			// ED: This had simply returned, but that doesn't seem right.
 			// If it didn't occur, it seems like we need to branch down the leftside of the DTrees for
