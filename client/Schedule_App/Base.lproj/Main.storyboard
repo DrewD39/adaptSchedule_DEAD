@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14109" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="ipad9_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
+        <capability name="Alignment constraints with different attributes" minToolsVersion="5.1"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="Schedule_App" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EcF-aG-aUZ" userLabel="Visualize Schedule">
+                                <rect key="frame" x="404" y="914" width="334" height="80"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="80" id="sZg-GS-uph"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" name=".SFNSDisplay" family=".SF NS Display" pointSize="18"/>
+                                <state key="normal" title="Visualize Schedule"/>
+                            </button>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="iuz-gO-I0A" userLabel="Main InOut Stack">
+                                <rect key="frame" x="0.0" y="50" width="768" height="270"/>
+                                <subviews>
+                                    <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" indicatorStyle="black" editable="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jSx-AI-86h">
+                                        <rect key="frame" x="0.0" y="0.0" width="768" height="270"/>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="270" id="yfB-JV-Rd1"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                        <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                                    </textView>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstItem="jSx-AI-86h" firstAttribute="leading" secondItem="iuz-gO-I0A" secondAttribute="leading" id="3RE-K2-acl"/>
+                                    <constraint firstItem="jSx-AI-86h" firstAttribute="top" secondItem="iuz-gO-I0A" secondAttribute="top" id="u52-ux-ZRm"/>
+                                    <constraint firstAttribute="trailing" secondItem="jSx-AI-86h" secondAttribute="trailing" id="zyt-ac-YUU"/>
+                                </constraints>
+                            </stackView>
+                            <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Enter command" clearsOnBeginEditing="YES" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="6Mi-sX-F2x">
+                                <rect key="frame" x="0.0" y="330" width="768" height="30"/>
+                                <nil key="textColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                                <textInputTraits key="textInputTraits" autocorrectionType="no" returnKeyType="done" enablesReturnKeyAutomatically="YES"/>
+                            </textField>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Kka-Gd-g1j" userLabel="UndoLastButton">
+                                <rect key="frame" x="30" y="914" width="334" height="80"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="80" id="uOO-c4-ijv"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" name=".SFNSDisplay" family=".SF NS Display" pointSize="18"/>
+                                <state key="normal" title="Undo Last Action"/>
+                                <connections>
+                                    <action selector="undoButtonAction:" destination="BYZ-38-t0r" eventType="touchUpInside" id="kP8-eG-KDt"/>
+                                </connections>
+                            </button>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="MPh-ns-4hP">
+                                <rect key="frame" x="30" y="400" width="708" height="464"/>
+                            </stackView>
+                        </subviews>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="EcF-aG-aUZ" firstAttribute="top" secondItem="MPh-ns-4hP" secondAttribute="bottom" constant="50" id="00u-sX-Wa7"/>
+                            <constraint firstItem="MPh-ns-4hP" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="30" id="0yR-xv-KV9"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="Kka-Gd-g1j" secondAttribute="bottom" constant="30" id="24g-6r-4WU"/>
+                            <constraint firstItem="EcF-aG-aUZ" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" constant="-30" id="72r-iI-4iH"/>
+                            <constraint firstItem="iuz-gO-I0A" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="30" id="9NA-or-09X"/>
+                            <constraint firstItem="Kka-Gd-g1j" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="centerX" constant="-20" id="Iaz-Zj-BbP"/>
+                            <constraint firstItem="6Mi-sX-F2x" firstAttribute="top" secondItem="iuz-gO-I0A" secondAttribute="bottom" constant="10" id="Ig3-jv-oSM"/>
+                            <constraint firstItem="MPh-ns-4hP" firstAttribute="top" secondItem="6Mi-sX-F2x" secondAttribute="bottom" constant="40" id="Rgc-2b-Yzf"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="MPh-ns-4hP" secondAttribute="trailing" constant="30" id="Way-oc-BLN"/>
+                            <constraint firstItem="iuz-gO-I0A" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="k7z-u7-zSF"/>
+                            <constraint firstItem="EcF-aG-aUZ" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="centerX" constant="20" id="kIB-fb-Ok0"/>
+                            <constraint firstItem="6Mi-sX-F2x" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="kM2-HZ-wE7"/>
+                            <constraint firstItem="Kka-Gd-g1j" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="30" id="kyB-fY-S9M"/>
+                            <constraint firstItem="iuz-gO-I0A" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="lVa-MV-rvO"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="EcF-aG-aUZ" secondAttribute="trailing" constant="30" id="oiz-PH-2BK"/>
+                            <constraint firstItem="6Mi-sX-F2x" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="per-xE-8VA"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                    </view>
+                    <toolbarItems/>
+                    <nil key="simulatedBottomBarMetrics"/>
+                    <connections>
+                        <outlet property="ActivityOptionsStack" destination="MPh-ns-4hP" id="pUd-pG-gQc"/>
+                        <outlet property="MainTextDisplay" destination="jSx-AI-86h" id="zMO-V7-Coi"/>
+                        <outlet property="MainTextIn" destination="6Mi-sX-F2x" id="yvf-gK-AAm"/>
+                        <outlet property="UndoLastButton" destination="Kka-Gd-g1j" id="tVv-0G-lcl"/>
+                        <outlet property="VisualizeScheduleButton" destination="EcF-aG-aUZ" id="kGt-gP-hXd"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="33.59375" y="38.671875"/>
+        </scene>
+    </scenes>
+</document>
