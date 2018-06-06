@@ -15,15 +15,14 @@ class client {
     var requestPOST: URLRequest
     var requestGET: URLRequest
     
-    
+    // for now, use a random int as the client ID (to prevent randos from internet from accessing)
     let ID = String( arc4random_uniform(_:10000000) )
     var urlString: String
-    var JSON_encoder: JSONEncoder
-    
     let url: URL?
     
-    // var cmdStr: String?
-    // var toPrintFromServer: String
+    var JSON_encoder: JSONEncoder
+    
+    // These re the pieces of info that will be recieved on each reply from the server
     var infoType : String?
     var nextActivites : [String]?
     var maxIdleTime : String?
@@ -35,7 +34,6 @@ class client {
     */
     init() {
         do {
-            //toPrintFromServer = ""
             infoType = ""
             nextActivites = []
             maxIdleTime = ""
@@ -43,15 +41,9 @@ class client {
             
             JSON_encoder = JSONEncoder()
             JSON_encoder.outputFormatting = .prettyPrinted
-            //var cmdStr = ""
             
-            //let ID = String( arc4random_uniform(_:10000000) )
-            
-            //Implementing URLSession
-            urlString = "http://localhost:8080/" + ID // where the data is stored
-            //            guard let url = URL(string: urlString) else {
-            //                throw MyError.runtimeError("on no")
-            //            } // convert string to URL class
+            // URL to access server at, appended by client ID to validate access
+            urlString = "http://localhost:8080/" + ID
             
             url = URL(string: urlString)
             
@@ -60,20 +52,14 @@ class client {
             requestGET = URLRequest(url: url!)
             requestGET.httpMethod = "GET"
             
-            
             // tell server you are starting a new session
-//            // TXT bsased JSON format to send to server
-//            var someData = try JSON_encoder.encode(
-//                putCMD(cmd: "cmd",value: "RESTART",clientID: ID))
-            //GUI based JSON format to send to server
-//            var aPut = putCMD()
-//            aPut.infoType = "startup"
-//            aPut.clientID = ID
-//            
-//            let someData = try JSON_encoder.encode( aPut )
-//            requestPOST.httpBody = someData
-//            
-//            makeAReq(req: requestPOST)
+            var aPut = putCMD()
+            aPut.infoType = "startup"
+            aPut.clientID = ID
+            let someData = try JSON_encoder.encode( aPut )
+            requestPOST.httpBody = someData
+            makeAReq(req: requestPOST)
+            
         } catch {
             print("Error: client init() failed")
         }
@@ -90,23 +76,6 @@ class client {
         debugInfo = []
     }
     
-    
-//    // old method for text-based interface
-//    func sendStrToServer(str: String) {
-//        var aReq: URLRequest
-//        aReq = URLRequest(url: self.url!)
-//        aReq.httpMethod = "POST"
-//
-//        // tell server you are starting a new session
-//        do {
-//            let aData = try JSON_encoder.encode(
-//            putCMD(cmd: "cmd",value: str,clientID: self.ID))
-//            aReq.httpBody = aData
-//            makeAReqTXT(req: aReq)
-//        } catch let error as NSError {
-//            print(error)
-//        }
-//    }
     
     /*
      * Send a JSON file to the server using internal methods
@@ -128,42 +97,6 @@ class client {
     }
     
     
-//    // method for text-based UI
-//    /*
-//     * Make a Get or Put request to the server and get the response from the server
-//     * Server expected response JSON format defined by fromServer struct
-//    */
-//    func makeAReq(req: URLRequest) {
-//        URLSession.shared.dataTask(with: req) { (data, response, error) in
-//            if error != nil {
-//                print("nill error:")
-//                print(error!.localizedDescription)
-//            }
-//
-//            // These struct variables need to match the names seen in the JSON object
-//            struct fromServer: Codable {
-//                let toPrint: String
-//            }
-//
-//            // check for toPrint values in the response JSON
-//            guard let data = data else { return }
-//
-//            do {
-//                let servData = try JSONDecoder().decode(fromServer.self, from: data)
-//                //print("to print from the server: " + servData.toPrint)
-//                if servData.toPrint != "" {
-//                    print(servData.toPrint)
-//                    self.toPrintFromServer += servData.toPrint
-//                }
-//
-//            } catch let error as NSError {
-//                print(error)
-//            }
-//
-//            }.resume()
-//        //End implementing URLSession
-//    }
-    
     /*
      * Make a Get or Put request to the server and get the response from the server
      * Server expected response JSON format defined by fromServer struct
@@ -171,38 +104,32 @@ class client {
      */
     // method for text-based UI
     func makeAReq(req: URLRequest) {
+        // make the specific request and then handle the reply (data, response, error)
         URLSession.shared.dataTask(with: req) { (data, response, error) in
             if error != nil {
                 print("nill error:")
                 print(error!.localizedDescription)
             }
             
-            // These struct variables need to match the names seen in the JSON object
-            struct fromServer: Codable {
-                // do not make these optional, because we want to throw error if some of the data is missing
-                // (unecesary components should be included as blank strings / empty vectors)
-                var infoType : String
-                var nextActivities : [String]
-                var maxIdleTime : String
-                var debugInfo : [String]
-            }
-            
-            // check for toPrint values in the response JSON
+            // get the data from inside the reply
             guard let data = data else { return }
             
             do {
                 let servData = try JSONDecoder().decode(fromServer.self, from: data)
                 // do something with servData
-                self.infoType = servData.infoType
-                self.nextActivites = servData.nextActivities
-                self.maxIdleTime = servData.maxIdleTime
+                if (servData.infoType != "") {
+                    self.infoType =       servData.infoType!;        print(servData.infoType)
+                    self.nextActivites =  servData.nextActivities!;  print(servData.nextActivities)
+                    self.maxIdleTime =    servData.maxIdleTime!;     print(servData.maxIdleTime)
+                }
+                print(servData.maxIdleTime)
                 
             } catch let error as NSError {
+                print("\nmakeAReq error:")
                 print(error)
             }
             
             }.resume()
-        //End implementing URLSession
     }
     
     
@@ -239,6 +166,17 @@ struct putCMD: Codable {
     //        var cmd: String
     //        var value: String
     //        var clientID: String
+}
+
+// These struct variables need to match the names seen in the JSON object
+// This structure format should match the reply format on the server side
+struct fromServer: Codable {
+    // do not make these optional, because we want to throw error if some of the data is missing
+    // (unecesary components should be included as blank strings / empty vectors)
+    var infoType : String?
+    var nextActivities : [String]?
+    var maxIdleTime : String?
+//    var debugInfo : [String]
 }
 
 // sample initialization
