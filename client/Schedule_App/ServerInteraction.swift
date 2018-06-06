@@ -100,9 +100,8 @@ class client {
     /*
      * Make a Get or Put request to the server and get the response from the server
      * Server expected response JSON format defined by fromServer struct
-     * ^^ this response format should match the JSON format seen in the server code
+     * This response format should match the JSON format seen in the server code
      */
-    // method for text-based UI
     func makeAReq(req: URLRequest) {
         // make the specific request and then handle the reply (data, response, error)
         URLSession.shared.dataTask(with: req) { (data, response, error) in
@@ -118,11 +117,10 @@ class client {
                 let servData = try JSONDecoder().decode(fromServer.self, from: data)
                 // do something with servData
                 if (servData.infoType != "") {
-                    self.infoType =       servData.infoType!;        print(servData.infoType)
-                    self.nextActivites =  servData.nextActivities!;  print(servData.nextActivities)
-                    self.maxIdleTime =    servData.maxIdleTime!;     print(servData.maxIdleTime)
+                    self.infoType = servData.infoType!;             print(servData.infoType!)
+                    self.nextActivites = servData.nextActivities!;  print(servData.nextActivities!)
+                    self.maxIdleTime = servData.maxIdleTime!;       print(servData.maxIdleTime!)
                 }
-                print(servData.maxIdleTime)
                 
             } catch let error as NSError {
                 print("\nmakeAReq error:")
@@ -162,10 +160,6 @@ struct putCMD: Codable {
     var infoType = ""  // options: startup / ganttRequest / confirmActivity / addActivity / removeActivity / editActivty
     var activityName = ""
     var debugInfo = [""]
-    
-    //        var cmd: String
-    //        var value: String
-    //        var clientID: String
 }
 
 // These struct variables need to match the names seen in the JSON object
