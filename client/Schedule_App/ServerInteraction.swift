@@ -121,7 +121,7 @@ class client {
                     self.infoType = servData.infoType!;             print("  infoType: ", terminator:"");        print(servData.infoType!)
                     self.nextActivites = servData.nextActivities!;  print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
                     self.maxIdleTime = servData.maxIdleTime!;       print("  maxIdleTime: ", terminator:"");     print(servData.maxIdleTime!)
-                    self.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print(servData.debugInfo!)
+                    self.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print("~suppressed for readability~")//print(servData.debugInfo!)
                 }
                 
             } catch let error as NSError {
