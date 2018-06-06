@@ -66,14 +66,14 @@ class client {
 //            var someData = try JSON_encoder.encode(
 //                putCMD(cmd: "cmd",value: "RESTART",clientID: ID))
             //GUI based JSON format to send to server
-            var aPut = putCMD()
-            aPut.infoType = "startup"
-            aPut.clientID = ID
-            
-            let someData = try JSON_encoder.encode( aPut )
-            requestPOST.httpBody = someData
-            
-            makeAReq(req: requestPOST)
+//            var aPut = putCMD()
+//            aPut.infoType = "startup"
+//            aPut.clientID = ID
+//            
+//            let someData = try JSON_encoder.encode( aPut )
+//            requestPOST.httpBody = someData
+//            
+//            makeAReq(req: requestPOST)
         } catch {
             print("Error: client init() failed")
         }
