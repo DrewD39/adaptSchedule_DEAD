@@ -117,9 +117,11 @@ class client {
                 let servData = try JSONDecoder().decode(fromServer.self, from: data)
                 // do something with servData
                 if (servData.infoType != "") {
-                    self.infoType = servData.infoType!;             print(servData.infoType!)
-                    self.nextActivites = servData.nextActivities!;  print(servData.nextActivities!)
-                    self.maxIdleTime = servData.maxIdleTime!;       print(servData.maxIdleTime!)
+                    print("\nJSON received from server:")
+                    self.infoType = servData.infoType!;             print("  infoType: ", terminator:"");        print(servData.infoType!)
+                    self.nextActivites = servData.nextActivities!;  print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
+                    self.maxIdleTime = servData.maxIdleTime!;       print("  maxIdleTime: ", terminator:"");     print(servData.maxIdleTime!)
+                    self.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print(servData.debugInfo!)
                 }
                 
             } catch let error as NSError {
@@ -170,7 +172,7 @@ struct fromServer: Codable {
     var infoType : String?
     var nextActivities : [String]?
     var maxIdleTime : String?
-//    var debugInfo : [String]
+    var debugInfo : [String]?
 }
 
 // sample initialization

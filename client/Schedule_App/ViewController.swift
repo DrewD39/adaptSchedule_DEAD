@@ -53,7 +53,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
                         let infoTypeFromServ = self.aClient!.infoType!; self.aClient!.infoType = ""
                         let nextActsFromServ = self.aClient!.nextActivites!; self.aClient!.nextActivites = []
                         let maxIdleTimeFromServ = self.aClient!.maxIdleTime!; self.aClient!.maxIdleTime = ""
-                        let debugInfoFromServ = self.aClient!.debugInfo!; self.aClient!.debugInfo = []
+                        let debugInfoFromServ = self.aClient!.debugInfo!; self.aClient!.debugInfo?.removeAll()
                         
                         
                         
