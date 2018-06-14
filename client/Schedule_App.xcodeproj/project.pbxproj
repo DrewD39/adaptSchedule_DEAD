@@ -14,6 +14,7 @@
 		3A5365C620B356510057B451 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3A5365C420B356510057B451 /* LaunchScreen.storyboard */; };
 		3A5365D120B356510057B451 /* Schedule_AppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5365D020B356510057B451 /* Schedule_AppTests.swift */; };
 		3A5365DC20B356510057B451 /* Schedule_AppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A5365DB20B356510057B451 /* Schedule_AppUITests.swift */; };
+		3AB21BC920D2CF73008CADF5 /* MenuController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AB21BC820D2CF73008CADF5 /* MenuController.swift */; };
 		3AD7719F20B45F6700948C2A /* ServerInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD7719E20B45F6700948C2A /* ServerInteraction.swift */; };
 /* End PBXBuildFile section */
 
@@ -48,6 +49,7 @@
 		3A5365D720B356510057B451 /* Schedule_AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Schedule_AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3A5365DB20B356510057B451 /* Schedule_AppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule_AppUITests.swift; sourceTree = "<group>"; };
 		3A5365DD20B356510057B451 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3AB21BC820D2CF73008CADF5 /* MenuController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MenuController.swift; sourceTree = "<group>"; };
 		3AD7719E20B45F6700948C2A /* ServerInteraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerInteraction.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -102,6 +104,7 @@
 				3A5365BB20B3564F0057B451 /* AppDelegate.swift */,
 				3A5365BD20B3564F0057B451 /* ViewController.swift */,
 				3A5365BF20B3564F0057B451 /* Main.storyboard */,
+				3AB21BC820D2CF73008CADF5 /* MenuController.swift */,
 				3A5365C220B356510057B451 /* Assets.xcassets */,
 				3A5365C420B356510057B451 /* LaunchScreen.storyboard */,
 				3A5365C720B356510057B451 /* Info.plist */,
@@ -261,6 +264,7 @@
 			files = (
 				3AD7719F20B45F6700948C2A /* ServerInteraction.swift in Sources */,
 				3A5365BE20B3564F0057B451 /* ViewController.swift in Sources */,
+				3AB21BC920D2CF73008CADF5 /* MenuController.swift in Sources */,
 				3A5365BC20B3564F0057B451 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

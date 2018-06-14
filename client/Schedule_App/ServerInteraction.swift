@@ -22,7 +22,7 @@ class client {
     
     var JSON_encoder: JSONEncoder
     
-    // These re the pieces of info that will be recieved on each reply from the server
+    // These are the pieces of info that will be recieved on each reply from the server
     var infoType : String?
     var nextActivites : [String]?
     var maxIdleTime : String?
@@ -134,7 +134,7 @@ class client {
     
     
     /*
-     * Every 200 ms poll the server for anything to print using GET requests
+     * Every 200 ms poll the server for any new requests using GET requests
      */
     func heartbeat() {
         while(true) {
@@ -174,11 +174,4 @@ struct fromServer: Codable {
     var maxIdleTime : String?
     var debugInfo : [String]?
 }
-
-// sample initialization
-//var aPut = putCMD()
-//aPut.clientID = ""
-//aPut.infoType = ""  // options: startup / ganttRequest / confirmActivity / addActivity / removeActivity / editActivty
-//activityName = ""
-//aPut.debugInfo = [""]
 

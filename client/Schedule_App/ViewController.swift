@@ -8,173 +8,109 @@
 
 import UIKit
 
+// All elements in the main screen are contained in this view
 class ViewController: UIViewController, UITextFieldDelegate {
+    // client class handles all client-server interaction
     var aClient: client?
-    var timer: DispatchSourceTimer?
+    
+    // menuDelegate is tableViewController to control left side menu of main screen
+    var menuDelegate = MenuController(style: .grouped)
     
     
     //MARK: Properties
-//    @IBOutlet weak var titleText: UILabel!
-//    @IBOutlet weak var textInput: UITextField!
-    
-    @IBOutlet weak var MainTextIn: UITextField!
-    @IBOutlet weak var MainTextDisplay: UITextView!
-    @IBOutlet weak var ActivityOptionsStack: UIStackView!
-    @IBOutlet weak var UndoLastButton: UIButton!
-    @IBOutlet weak var VisualizeScheduleButton: UIButton!
+    @IBOutlet var SideMenu: UITableView!
+    @IBOutlet weak var ConfirmActButton: UIButton!
     
     
+    // Called whenever this view (main screen) opens to the user (including app startup)
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Handle the text field’s user input through delegate callbacks.
-        //textInput.delegate = self
-        MainTextIn.delegate = self
+        // Set the sideMenu tableView as a child view
+        addChildViewController(menuDelegate)
+        //        view.addSubview(menuDelegate.view)
+        menuDelegate.didMove(toParentViewController: self)
         
+        // Set the sideMenu delegate and dataSource to MenuController (sublass of TableViewController)
+        SideMenu.delegate = menuDelegate
+        SideMenu.dataSource = menuDelegate
+        
+        // initialize client
         self.aClient = client()
+        
+        // In the background, the client should continuously send heartbeat GET messages to the server
+        // Heartbeat function will update the member variables of aClient in background whenever the server replies with new info
         DispatchQueue.global(qos: .background).async {
-            //self.aClient!.continuouslyGetInOut() // wont leave this point until connection with server terminated
-            self.aClient!.heartbeat() // will update the member variables of aClient in background when the server sends info
+            self.aClient!.heartbeat()
         }
         
+        // In the background, changes to the client should be pulled up here into the controller
         DispatchQueue.global(qos: .background).async {
-//            var strFromServ = ""
-            var buttons: [UIButton] = []
-            
             while (true) {
-                sleep(1)
+                usleep(200000) // wait microseconds
+                // infoType will be non-empty if client has received message of significance
                 if (self.aClient!.infoType != "") {
-                    
-                    
-                    // Update the UI on the main thread
+                    // UI must be updated on the main queue (thread)
                     DispatchQueue.main.async() {
-//                        strFromServ = self.aClient!.toPrintFromServer
-//                        self.aClient!.toPrintFromServer = ""
                         let infoTypeFromServ = self.aClient!.infoType!; self.aClient!.infoType = ""
                         let nextActsFromServ = self.aClient!.nextActivites!; self.aClient!.nextActivites = []
                         let maxIdleTimeFromServ = self.aClient!.maxIdleTime!; self.aClient!.maxIdleTime = ""
                         let debugInfoFromServ = self.aClient!.debugInfo!; self.aClient!.debugInfo?.removeAll()
                         
-                        
-                        
-                        // remove old button activity options
-                        for index in 0..<buttons.count {
-                            buttons[index].removeFromSuperview()
-                        }
-                        
-                        
-                        self.MainTextDisplay.text = self.MainTextDisplay.text! + infoTypeFromServ + " " + maxIdleTimeFromServ
-                        let range = NSMakeRange(self.MainTextDisplay.text.count - 1, 1);
-                        self.MainTextDisplay.scrollRangeToVisible(range)
+                        // update list of possible activities and trigger a sideMenu refresh
+                        self.menuDelegate.activityOptions = nextActsFromServ
+                        self.SideMenu.reloadData()
 
-                        
-                        var strActs = nextActsFromServ // array of activities
-                        var firstActLine = 9999999999999
-                        
-                        if strActs.count > 0 {
-                            buttons = []
-                            for index in 0...strActs.count-1 {
-                                let button = UIButton(frame: .zero)
-                                button.setTitleColor(.black, for: .normal)
-                                button.setTitle(strActs[index], for: .normal)
-                                button.layer.borderColor = UIColor.gray.cgColor
-                                button.layer.borderWidth = 1.0
-                                button.translatesAutoresizingMaskIntoConstraints = false
-                                self.ActivityOptionsStack.addSubview(button)
-//                                button.frame.size.width = 200.0
-//                                    = CGSize(width:200, height:100)
-                                let widthContraints =  NSLayoutConstraint(item: button, attribute: NSLayoutAttribute.width, relatedBy: NSLayoutRelation.equal, toItem: nil, attribute: NSLayoutAttribute.notAnAttribute, multiplier: 1, constant: 150)
-                                let heightContraints = NSLayoutConstraint(item: button, attribute: NSLayoutAttribute.height, relatedBy: NSLayoutRelation.equal, toItem: nil, attribute: NSLayoutAttribute.notAnAttribute, multiplier: 1, constant: 50)
-                                NSLayoutConstraint.activate([heightContraints,widthContraints])
-                                button.addTarget(self, action: #selector(self.activityButtonAction), for: .touchUpInside)
-                                buttons.append(button)
-                            }
-                            
-                            for index in 0...strActs.count-1 {
-                                let button = buttons[index]
-                                if index == 0 {
-                                    button.leadingAnchor.constraint(equalTo: self.ActivityOptionsStack.leadingAnchor, constant: 0.0).isActive = true
-                                    button.topAnchor.constraint(equalTo: self.ActivityOptionsStack.topAnchor, constant: 0.0).isActive = true
-                                } else if (index == 1) {
-                                    let preButton = buttons[0]
-                                    button.trailingAnchor.constraint(equalTo: self.ActivityOptionsStack.trailingAnchor, constant: 0).isActive = true
-                                    button.topAnchor.constraint(equalTo: preButton.topAnchor, constant: 0).isActive = true
-                                } else if (index % 2 == 1) { // odd indices go on right side
-                                    let preButton = buttons[index - 2]
-                                    button.leadingAnchor.constraint(equalTo: preButton.leadingAnchor, constant: 0).isActive = true
-                                    button.topAnchor.constraint(equalTo: preButton.bottomAnchor, constant: 10).isActive = true
-                                } else if (index % 2 == 0) { // even indices go on left side
-                                    let preButton = buttons[index - 2]
-                                    button.trailingAnchor.constraint(equalTo: preButton.trailingAnchor, constant: 0).isActive = true
-                                    button.topAnchor.constraint(equalTo: preButton.bottomAnchor, constant: 10).isActive = true
-                                }
-                                
-                            }
-                        }
                     }
                 }
             }
         }
     }
 
-    
+    // Auto-generated function to handle memory overuse
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-    //MARK: UITextFieldDelegate
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        // Hide the keyboard.
-        textField.resignFirstResponder()
-        return true
-    }
     
-    // called upon releasing first responder status (AKA right after testFieldShouldReturn returns)
-    func textFieldDidEndEditing(_ textField: UITextField) {
-//        self.aClient!.sendStrToServer(str: MainTextIn.text!) // TXT-based interface command
-        
-        var aPut = putCMD()
-        aPut.clientID = self.aClient!.ID
-        aPut.infoType = "confirmActivity"
-        aPut.activityName = self.MainTextDisplay.text
-        self.aClient!.sendStructToServer( aPut )
-        
-        self.MainTextDisplay.text = ""
-        MainTextIn.text = ""
-    }
     
     //MARK: Actions
-//    @IBAction func setDefaultTextButton(_ sender: UIButton) {
-//        titleText.text = "Default Text"
-//    }
     
-    @IBAction func activityButtonAction(_ sender: UIButton) {
-
+    // This function is called when the 'confirm activity' button is clicked
+    // Will take the label from the currently selected activity and send it to the server as the activity selection
+    @IBAction func confirmActButtonClick(_ sender: UIButton) {
         var aPut = putCMD()
         aPut.clientID = self.aClient!.ID
         aPut.infoType = "confirmActivity"
-        aPut.activityName = sender.titleLabel!.text!
-        self.aClient!.sendStructToServer(aPut)
         
-        self.MainTextDisplay.text = ""
-    }
-    
-//    // no longer a feature in GUI interface
-//    @IBAction func undoButtonAction(_ sender: UIButton) {
-//        self.aClient!.sendStrToServer(str: "U")
-//        self.MainTextDisplay.text = ""
-//    }
-    
-    
-}
-
-
-extension UISegmentedControl {
-    func replaceSegments(segments: Array<String>) {
-        self.removeAllSegments()
-        for segment in segments {
-            self.insertSegment(withTitle: segment, at: self.numberOfSegments, animated: false)
+        // if some activity has been selected
+        if SideMenu.indexPathForSelectedRow != nil {
+            
+            // send the label of the currently selected activity
+            aPut.activityName = menuDelegate.activityOptions[SideMenu.indexPathForSelectedRow!.row]
+            
+            // unselect the selection from the list
+            SideMenu.deselectRow(at: SideMenu.indexPathForSelectedRow!, animated:false)
+            
+            // clear the list until new activity options are provided
+            self.menuDelegate.activityOptions = []
+            self.SideMenu.reloadData()
+            
+            // send request to server
+            self.aClient!.sendStructToServer(aPut)
+            
+        } else { // if no actiivty was selected
+            
+            // create a pop-up informing user no activity was selected
+            let alert = UIAlertController(title: "Error", message: "Select an activity before confirming.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Resume", style: .default, handler: nil))
+            self.present(alert, animated: true)
         }
+        
     }
+    
 }
+
+
+
+
