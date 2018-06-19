@@ -23,10 +23,8 @@ class client {
     var JSON_encoder: JSONEncoder
     
     // These are the pieces of info that will be recieved on each reply from the server
-    var infoType : String?
-    var nextActivites : [String]?
-    var maxIdleTime : String?
-    var debugInfo : [String]?
+    var currentInfo: fromServer = fromServer()
+    
 
 
     /*
@@ -34,10 +32,6 @@ class client {
     */
     init() {
         do {
-            infoType = ""
-            nextActivites = []
-            maxIdleTime = ""
-            debugInfo = []
             
             JSON_encoder = JSONEncoder()
             JSON_encoder.outputFormatting = .prettyPrinted
@@ -51,6 +45,7 @@ class client {
             requestPOST.httpMethod = "POST"
             requestGET = URLRequest(url: url!)
             requestGET.httpMethod = "GET"
+            
             
             // tell server you are starting a new session
             var aPut = putCMD()
@@ -70,10 +65,6 @@ class client {
      * Destructor
     */
     deinit {
-        infoType = ""
-        nextActivites = []
-        maxIdleTime = ""
-        debugInfo = []
     }
     
     
@@ -112,16 +103,18 @@ class client {
             
             // get the data from inside the reply
             guard let data = data else { return }
-            
             do {
                 let servData = try JSONDecoder().decode(fromServer.self, from: data)
-                // do something with servData
+                
+                // if the reply info type is not blank, parse the data
                 if (servData.infoType != "") {
                     print("\nJSON received from server:")
-                    self.infoType = servData.infoType!;             print("  infoType: ", terminator:"");        print(servData.infoType!)
-                    self.nextActivites = servData.nextActivities!;  print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
-                    self.maxIdleTime = servData.maxIdleTime!;       print("  maxIdleTime: ", terminator:"");     print(servData.maxIdleTime!)
-                    self.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print("~suppressed for readability~")//print(servData.debugInfo!)
+                    self.currentInfo.infoType = servData.infoType!;             print("  infoType: ", terminator:"");        print(servData.infoType!)
+                    self.currentInfo.startTime = servData.startTime!;           print("  startTime: ", terminator:"");       print(servData.infoType!)
+                    self.currentInfo.nextActivities = servData.nextActivities!;  print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
+                    self.currentInfo.actsMinDur = servData.actsMinDur!;         print("  actsMinDur: ", terminator:"");      print(servData.actsMinDur!)
+                    self.currentInfo.actsMaxDur = servData.actsMaxDur!;         print("  actsMaxDur: ", terminator:"");      print(servData.actsMaxDur!)
+                    self.currentInfo.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print("~suppressed for readability~")//print(servData.debugInfo!)
                 }
                 
             } catch let error as NSError {
@@ -140,7 +133,7 @@ class client {
         while(true) {
             self.makeAReq(req: self.requestGET)
             usleep(200000) // microseconds
-            if self.infoType == "startup" {return;}
+            if self.currentInfo.infoType == "startup" {return;}
         }
     }
     
@@ -161,6 +154,7 @@ struct putCMD: Codable {
     var clientID = ""
     var infoType = ""  // options: startup / ganttRequest / confirmActivity / addActivity / removeActivity / editActivty
     var activityName = ""
+    var activityDuration = ""
     var debugInfo = [""]
 }
 
@@ -171,7 +165,18 @@ struct fromServer: Codable {
     // (unecesary components should be included as blank strings / empty vectors)
     var infoType : String?
     var nextActivities : [String]?
-    var maxIdleTime : String?
+    var startTime: String?
+    var actsMinDur : [String]?
+    var actsMaxDur : [String]?
     var debugInfo : [String]?
+    
+    init() {
+         infoType = ""
+         nextActivities = []
+         startTime = ""
+         actsMinDur = []
+         actsMaxDur = []
+         debugInfo = []
+    }
 }
 

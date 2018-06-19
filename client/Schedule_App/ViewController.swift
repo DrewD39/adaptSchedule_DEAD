@@ -10,8 +10,13 @@ import UIKit
 
 // All elements in the main screen are contained in this view
 class ViewController: UIViewController, UITextFieldDelegate {
+
+    
     // client class handles all client-server interaction
     var aClient: client?
+    
+    // holds the info recieved from client from server
+    var viewInInfo: fromServer = fromServer()
     
     // menuDelegate is tableViewController to control left side menu of main screen
     var menuDelegate = MenuController(style: .grouped)
@@ -31,6 +36,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //        view.addSubview(menuDelegate.view)
         menuDelegate.didMove(toParentViewController: self)
         
+        
         // Set the sideMenu delegate and dataSource to MenuController (sublass of TableViewController)
         SideMenu.delegate = menuDelegate
         SideMenu.dataSource = menuDelegate
@@ -45,21 +51,33 @@ class ViewController: UIViewController, UITextFieldDelegate {
         }
         
         // In the background, changes to the client should be pulled up here into the controller
+        // TODO: Set up queue system to hold multiple messsages from server at once
         DispatchQueue.global(qos: .background).async {
             while (true) {
                 usleep(200000) // wait microseconds
                 // infoType will be non-empty if client has received message of significance
-                if (self.aClient!.infoType != "") {
+                if (self.aClient!.currentInfo.infoType != "") {
                     // UI must be updated on the main queue (thread)
                     DispatchQueue.main.async() {
-                        let infoTypeFromServ = self.aClient!.infoType!; self.aClient!.infoType = ""
-                        let nextActsFromServ = self.aClient!.nextActivites!; self.aClient!.nextActivites = []
-                        let maxIdleTimeFromServ = self.aClient!.maxIdleTime!; self.aClient!.maxIdleTime = ""
-                        let debugInfoFromServ = self.aClient!.debugInfo!; self.aClient!.debugInfo?.removeAll()
+                        
+                        self.viewInInfo.infoType = self.aClient!.currentInfo.infoType!; self.aClient!.currentInfo.infoType = ""
+                        self.viewInInfo.startTime = self.aClient!.currentInfo.startTime!; self.aClient!.currentInfo.startTime? = ""
+                        self.viewInInfo.nextActivities = self.aClient!.currentInfo.nextActivities!; self.aClient!.currentInfo.nextActivities = []
+                        self.viewInInfo.actsMinDur = self.aClient!.currentInfo.actsMinDur!; self.aClient!.currentInfo.actsMinDur = []
+                        self.viewInInfo.actsMaxDur = self.aClient!.currentInfo.actsMaxDur!; self.aClient!.currentInfo.actsMaxDur = []
+                        self.viewInInfo.debugInfo = self.aClient!.currentInfo.debugInfo!; self.aClient!.currentInfo.debugInfo?.removeAll()
                         
                         // update list of possible activities and trigger a sideMenu refresh
-                        self.menuDelegate.activityOptions = nextActsFromServ
+                        self.menuDelegate.activityOptions = self.viewInInfo.nextActivities!
+                        if self.viewInInfo.nextActivities!.count > 0 {
+                            self.ConfirmActButton.isEnabled = true
+                        }else {
+                            self.ConfirmActButton.isEnabled = false
+                        }
                         self.SideMenu.reloadData()
+                        self.menuDelegate.startTime = Int(self.viewInInfo.startTime!)!
+                        self.menuDelegate.minDurs = self.viewInInfo.actsMinDur!
+                        self.menuDelegate.maxDurs = self.viewInInfo.actsMaxDur!
 
                     }
                 }
@@ -86,14 +104,17 @@ class ViewController: UIViewController, UITextFieldDelegate {
         // if some activity has been selected
         if SideMenu.indexPathForSelectedRow != nil {
             
-            // send the label of the currently selected activity
+            // send the label and duration of the currently selected activity
             aPut.activityName = menuDelegate.activityOptions[SideMenu.indexPathForSelectedRow!.row]
+            aPut.activityDuration = "00:"+String(menuDelegate.selectionDuration)
             
             // unselect the selection from the list
             SideMenu.deselectRow(at: SideMenu.indexPathForSelectedRow!, animated:false)
             
             // clear the list until new activity options are provided
             self.menuDelegate.activityOptions = []
+            self.menuDelegate.startTime = 0
+            ConfirmActButton.isEnabled = false
             self.SideMenu.reloadData()
             
             // send request to server
@@ -108,6 +129,9 @@ class ViewController: UIViewController, UITextFieldDelegate {
         }
         
     }
+    
+    
+   
     
 }
 
