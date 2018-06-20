@@ -63,8 +63,8 @@ class ViewController: UIViewController, UITextFieldDelegate {
                         self.viewInInfo.infoType = self.aClient!.currentInfo.infoType!; self.aClient!.currentInfo.infoType = ""
                         self.viewInInfo.startTime = self.aClient!.currentInfo.startTime!; self.aClient!.currentInfo.startTime? = ""
                         self.viewInInfo.nextActivities = self.aClient!.currentInfo.nextActivities!; self.aClient!.currentInfo.nextActivities = []
-                        self.viewInInfo.actsMinDur = self.aClient!.currentInfo.actsMinDur!; self.aClient!.currentInfo.actsMinDur = []
-                        self.viewInInfo.actsMaxDur = self.aClient!.currentInfo.actsMaxDur!; self.aClient!.currentInfo.actsMaxDur = []
+                        self.viewInInfo.nextActsMinDur = self.aClient!.currentInfo.nextActsMinDur!; self.aClient!.currentInfo.nextActsMinDur = []
+                        self.viewInInfo.nextActsMaxDur = self.aClient!.currentInfo.nextActsMaxDur!; self.aClient!.currentInfo.nextActsMaxDur = []
                         self.viewInInfo.debugInfo = self.aClient!.currentInfo.debugInfo!; self.aClient!.currentInfo.debugInfo?.removeAll()
                         
                         // update list of possible activities and trigger a sideMenu refresh
@@ -75,9 +75,9 @@ class ViewController: UIViewController, UITextFieldDelegate {
                             self.ConfirmActButton.isEnabled = false
                         }
                         self.SideMenu.reloadData()
-                        self.menuDelegate.startTime = Int(self.viewInInfo.startTime!)!
-                        self.menuDelegate.minDurs = self.viewInInfo.actsMinDur!
-                        self.menuDelegate.maxDurs = self.viewInInfo.actsMaxDur!
+//                        self.menuDelegate.startTime = Int(self.viewInInfo.startTime!)!
+                        self.menuDelegate.minDurs = self.viewInInfo.nextActsMinDur!
+                        self.menuDelegate.maxDurs = self.viewInInfo.nextActsMaxDur!
 
                     }
                 }

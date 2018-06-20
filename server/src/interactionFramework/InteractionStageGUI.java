@@ -20,10 +20,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import static java.nio.file.StandardCopyOption.*;
 import java.io.File;
 
@@ -85,6 +88,11 @@ public class InteractionStageGUI implements Runnable {
 	private HashSet<String> confirmedActSet = new HashSet<String>();
 	private HashSet<String> currentActSet = new HashSet<String>();
 	
+	public LinkedBlockingQueue<JSONObject> toClientQueue    = new LinkedBlockingQueue<JSONObject>();
+	public LinkedBlockingQueue<JSONObject> fromClientQueue  = new LinkedBlockingQueue<JSONObject>();;
+	
+	
+	
 	
 	@SuppressWarnings("unused")
 	public void run(){
@@ -98,7 +106,7 @@ public class InteractionStageGUI implements Runnable {
 
 		File tmpDir = new File(problemFile);
 		if (!tmpDir.exists()) {
-			printToClient("Failed to load file. Double check file?");
+			System.out.println("Failed to load file. Double check file?");
 			return;
 		}
 		dtp = new ProblemLoader().loadDTPFromFile(problemFile);
@@ -120,7 +128,8 @@ public class InteractionStageGUI implements Runnable {
 		for(int i = 0; i < numAgents; i++) systemTime.add(0); prevSystemTime.add(0);
 		//dtp.printConstraints(Generics.getLogStream());
 		if(numAgents > 1){
-			getAgentSelection();
+//			getAgentSelection();
+			currentAgent = 0;
 		}
 		
 		
@@ -137,37 +146,24 @@ public class InteractionStageGUI implements Runnable {
 				CONCURRENT = false;
 				if(DEBUG >= 2) dtp.printSelectionStack();
 				if(DEBUG >= 1){
-//					System.out.println("SystemTime: "+systemTime.toString());
-					printToClient("SystemTime: "+systemTime.toString());
 					Generics.printDTP(dtp);
-					//System.out.println("Calls to solver" +dtp.getCallsToSolver());
+					System.out.println("Calls to solver" +dtp.getCallsToSolver());
 				} if (DEBUG == 0){ // Print Deltas mode
 					if(prevDTP == null) Generics.printDTP(dtp);
 					else dtp.printDeltas(dtp.getDeltas(prevDTP));
 				}
-//				System.out.println("\nCurrent Time: "+Generics.toTimeFormat(getSystemTime()));
-				printToClient("\nCurrent Time: "+Generics.toTimeFormat(getSystemTime()));
-				//Viz.printDTPDiagram(dtp, initialDTP, getSystemTime(),1);
+
 				int minTime = dtp.getMinTime();
-//				System.out.println("MinTime is " + minTime);
 				minTime = Math.min(minTime, MAX_LET);
-//				System.out.println("MinTime is " + minTime);
-//				System.out.println("Type anything to continue.");
-//				String resp3 = cin.next();
+
 				//ED: I revised the below so that it does NOT automatically move forward until the next
 				// required activity.  That breaks at end of day, when it could offer chance to idle (and
 				// express that a sporadic activity has occurred)
 				if(getSystemTime() >= MAX_LET){
-//					System.out.println("End of day.");
-					printToClient("End of day.");
-//					Generics.printDTP(prevDTP);
-//					Generics.printDTP(dtp);
 					flag = false;
 					return;
 				}
 				else if(minTime > getSystemTime() && minTime < MAX_LET){
-//					System.out.println("\nNo activities available until "+Generics.toTimeFormat(minTime)+". Idling until then.");
-					printToClient("\nNo activities available until "+Generics.toTimeFormat(minTime)+". Idling until then.");
 					int temp = minTime - getSystemTime();
 					advanceSystemTimeTo(minTime);
 					dtp.advanceToTime(-getSystemTime(), temp, false);
@@ -175,13 +171,12 @@ public class InteractionStageGUI implements Runnable {
 					continue;
 				}
 				else if(minTime < getSystemTime()){
-					System.out.println("Should be error? for minTime thing");
-					//throw new Error("minTime("+minTime+") < systemTime("+systemTime+")");		
+					System.out.println("Should be error for minTime thing. Ignoring in this version.");	
 				}
 
 				Class cls = dtp.getClass();
-//			    System.out.println("The type of the DTP is: " + cls.getName());
 			    
+				/*
 				//capability for observing and updating problem when SEs are present
 				//TODO: This enumerates the known cases of sporadic TP.  Is there a more extensible approach?
 				if((disjunctivelyUncertainProblem(dtp)) && !SPORADIC_OCCURRED){
@@ -192,14 +187,12 @@ public class InteractionStageGUI implements Runnable {
 						continue;
 					}
 				}
+				*/
 				
-				//Prompt user for their activity selection	
-//				System.out.println("About to get activities. Type in anything to continue.");
-//				String resp1 = cin.next();
+				//Prompt user for their activity selection
 				List<List<String>> activities = dtp.getActivities(DisjunctiveTemporalProblem.ActivityFinder.TIME, -getSystemTime());
+				List<List<String>> allRemActivities = dtp.getActivities(DisjunctiveTemporalProblem.ActivityFinder.ALL, -getSystemTime());
 				List<Integer> maxSlack = dtp.getMaxSlack();
-//				System.out.println("Got activities. Type in anything to continue.");
-//				String resp2 = cin.next();
 				
 				//Update ongoing activities data struct
 				ArrayList<Integer> toRemove = new ArrayList<Integer>();
@@ -214,23 +207,13 @@ public class InteractionStageGUI implements Runnable {
 				for(int j : toRemove) ongoingActs.remove(j);
 				//System.out.println("after removal: " + ongoingActs);
 				
-				String ongoing_str = "";
-				if(ongoingActs.size() > 0){
-					ongoing_str = "Ongoing activities are: ";
-					for (SimpleEntry<String,Interval> pair : ongoingActs){
-						String temp = "";
-						temp = temp + pair.getKey() + " ending at " + Generics.toTimeFormat((int) pair.getValue().getUpperBound());
-						ongoing_str = ongoing_str + " " + temp +";";
-					}
-				}
-				
-				
 				if(maxSlack.size() == 1 && maxSlack.get(0) > 0) activities.get(0).add("idle");
 				else for(int i = 0; i < maxSlack.size(); i++){
 					//agent can only idle if it has available slack and needs to currently make a selection
 					if(maxSlack.get(i) > 0 && getSystemTime(i) == getSystemTime()) activities.get(i).add("agent"+i+"Idle"); 
 				}
 				
+				/*
 				// we want to add an option to skip to the end of the earliest ending activity in the ongoing acts list.
 				if(ongoingActs.size() > 0){
 					// get the earliest end time of the activities
@@ -238,238 +221,102 @@ public class InteractionStageGUI implements Runnable {
 					skip_time = eet - getSystemTime();
 					activities.get(0).add("skip");
 				}
-				//System.out.println("Select activity for agent " + currentAgent+" to perform: " + activities.get(0).toString() + " unless a (S)poradic event occurred, or (O)utput schedule information, (U)ndo last selection, (C)hange agent, or (A)dvanced selection.");
-//				System.out.println(ongoing_str);
-				printToClient(ongoing_str);
-				if(numAgents > 1 && currentAgent != numAgents) {
-					if (textUI) printToClient("Select activity for agent " + currentAgent+" to perform: " + activities.get(0).toString() + " or (O)utput schedule information, (U)ndo last selection, (C)hange agent, or (A)dvanced selection.");
-					else {
-					printToClient("Select activity for agent " + currentAgent+" to perform:\n" + listAgentActivities(activities,0));
-					//printToClient("Or select a schedule option:\n(A)dvanced selection\n(U)ndo last selection\n(C)hange agent\n(O)utput schedule information");
-					//printToClient("Or select a schedule option:\n(U)ndo last selection\n(V)isualize schedule");
-					}
-				} else if(numAgents > 1){
-					if (textUI) printToClient("(A)dvanced selection, (U)ndo last selection, (S)witch agent, (O)utput schedule information, or select activity to perform: ");
-					//printToClient("Or select a schedule option:\n");
-					//printToClient("(A)dvanced selection\n(U)ndo last selection\n(S)witch agent\n(O)utput schedule information\nOr select activity to perform:\n");
-					else printToClient("Select activity to perform:");
-					for(int i = 0; i < activities.size(); i++){
-//						System.out.println("Agent "+i+": "+activities.get(i).toString());
-						printToClient("Agent "+i+": "+listAgentActivities(activities,i).toString());
-					}
-					//if (textUI == false) printToClient("Or select a schedule option:\n(U)ndo last selection\n(V)isualize schedule");
-				}
-				else {
-					if(maxSlack.get(0) >= 20 && !PREEMPTIVE){
-						if (textUI) printToClient("Select activity to perform: "+activities.get(0).toString() + " or (A)dvanced selection, (U)ndo last selection, (O)utput schedule information, (P)erform preemptive activity, or (E)mergency idle.");
-						else {
-							printToClient("Select activity to perform:\n"+listAgentActivities(activities,0));
-	//						printToClient("Or select a schedule option:\n(A)dvanced selection\n(U)ndo last selection\n(O)utput schedule information\n(P)erform preemptive activity\n(E)mergency idle");
-							//printToClient("Or select a schedule option:\n(U)ndo last selection\n(V)isualize schedule\n(P)erform preemptive activity");
-						}
-					}else{
-						if (textUI) printToClient("Select activity to perform: "+activities.get(0).toString() + " or (A)dvanced selection, (U)ndo last selection, (O)utput schedule information, or (E)mergency Idle.");
-						else {
-							printToClient("Select activity to perform:\n"+listAgentActivities(activities,0));
-	//						printToClient("Or select a schedule option:\n(A)dvanced selection\n(U)ndo last selection\n(O)utput schedule information\n(E)mergency Idle");
-							//printToClient("Or select a schedule option:\n(U)ndo last selection\n(V)isualize schedule");
-						}
-					}
-				}
-				
-				jsonIN = getNextRequest();
-				String infoType = (String) jsonIN.get("infoType");
-				String actName = (String) jsonIN.get("activityName");
-				
-				if (infoType != "ganttRequest" && infoType != "confirmActivity") {
-					// handle gui specific needs in here
-					// everything besides ganttRequest / confirmActivity an activity will be in here
-					continue;
-				}
-				
-				/*
-				// this functionality is drastically different now in GUI US and GUI communication
-				String str = (String) jsonIN.get("value");
-				 
-
-				
-//				//TODO: look at selection stack stuff w.r.t. multiple agents and switching between them
-//				else if(str.equalsIgnoreCase("U")){
-				if(str.equalsIgnoreCase("U")){
-					if(previousDTPs.empty()) {
-//						System.out.println("The schedule has not yet been modified.\n");
-						printToClient("The schedule has not yet been modified.\n");
-						continue;
-					}
-//					System.out.println("Undoing last selection.");
-					printToClient("Undoing last selection.");
-					
-					SimpleEntry<Integer, DisjunctiveTemporalProblem> ent = previousDTPs.pop();
-					
-					setSystemTime(ent.getKey());
-//					System.out.println("Resetting time to "+Generics.toTimeFormat(getSystemTime()));
-									//dtp = dtpClone(prevDTP, getSystemTime());
-					printToClient("Resetting time to "+Generics.toTimeFormat(getSystemTime()));
-					dtp = ent.getValue();
-					
-					continue;
-				}
 				*/
 				
-				// if ganttRequest / confirmActivity but invalid activity name
-				if(!Generics.concat(activities).contains(actName)){
-//					System.out.println("Unsupported activity selection \""+actName+"\"");
-					printToClient("Unsupported activity selection \""+actName+"\"");
-					continue;
-				}
-				// ELSE if what was entered is an idle/activity
-				int time;
-				if((actName.equals("idle") && currentAgent != numAgents) || actName.matches("^agent\\d+Idle$")){
-					//prevDTP = dtpClone(dtp, getSystemTime());
-					prevDTP = dtp.clone();
-					int t = getSystemTime();
-					previousDTPs.push(new SimpleEntry<Integer, DisjunctiveTemporalProblem>(t, prevDTP));
-					prevSystemTime.clear();
-					for(Integer i: systemTime) prevSystemTime.add(i);
-					
-					// DREW: This looks liek code for the mode 2 (clock mode). That mode doesnt seem necessary for GUI implementation
-//					if(currentAgent == numAgents){
-//						int idleIdx = Integer.parseInt(str.substring(5, str.length()-4));
-//						dtp.setCurrentAgent(idleIdx);
-//						currentAgent = idleIdx;
-//						last_activity = "idle";
-//						String temp = (String) jsonIN.get("idleTime");
-//						int idleTime = Generics.fromTimeFormat(temp);
-//						getAndPerformIdle(minTime - getSystemTime(), maxSlack.get(idleIdx), idleTime);
-//						dtp.setCurrentAgent(numAgents);
-//						currentAgent = numAgents;
-//					}
-//					else{
-					last_activity = "idle";
-					String temp = (String) jsonIN.get("idleTime");
-					int idleTime = Generics.fromTimeFormat(temp);
-					getAndPerformIdle(minTime-getSystemTime(), maxSlack.get(0), idleTime);
-//					}
-					continue;
-				}
-
-				// else performing an activity
-//				if (infoType == "confirmActivity") {
-				last_activity = actName;
-				prevDTP = dtp.clone();
-				previousDTPs.push(new SimpleEntry<Integer, DisjunctiveTemporalProblem>(getSystemTime(), prevDTP));
-				prevSystemTime.clear();
-				for(Integer i: systemTime) prevSystemTime.add(i);
-				//TODO: make sure that this ^^ handles the second case below where it asks if you're cool w the immediate idle.
-				IntervalSet interval = dtp.getInterval(actName+"_S", actName+"_E").inverse().subtract(zeroInterval);
-				int agent = dtp.getAgent(actName+"_S");
-//					System.out.println("Interval totalSize is "+interval.totalSize());
-//					printToClient("Interval totalSize is "+interval.totalSize());
-				if(interval.totalSize() != 1){
-					boolean durationFlag = true;
-					do{
-						printToClient("How long to perform "+actName+"? Possible Options "+interval.toString());
-						/*time = Generics.fromTimeFormat(cin.next());*/ // Commented out by Drew
-						jsonIN = getNextRequest();
-						time = Generics.fromTimeFormat( (String) jsonIN.get("value") );
-						if(!interval.intersect(time)){
-							printToClient("Unexpected response \""+actName+"\"");
+				// create 2d vector of min and max durations of next possible activities
+				// first index is agent num, second index is act ind that coordinates to activities vector
+				ArrayList<ArrayList<String>> nextActsMinDur = new ArrayList<ArrayList<String>>(); for (int i=0;i<numAgents;i++) nextActsMinDur.add(new ArrayList<String>());
+				ArrayList<ArrayList<String>> nextActsMaxDur = new ArrayList<ArrayList<String>>(); for (int i=0;i<numAgents;i++) nextActsMaxDur.add(new ArrayList<String>());
+				
+				for (int agent = 0; agent < numAgents; agent++) {
+					for (int act = 0; act < activities.get(currentAgent).size(); act++) {
+						if (activities.get(0).get(act).equals("idle")) {
+							nextActsMinDur.get(agent).add("5"); // min idle time is no less than 5 minutes
+							nextActsMaxDur.get(agent).add(String.valueOf(maxSlack.get(currentAgent)));
 							continue;
 						}
-						
-						IntervalSet endTime = dtp.getInterval("zero", actName+"_E");
-						int idle = (int) (-endTime.getUpperBound() - getSystemTime() - time);
-						if(idle > 0){	
-							printToClient("Option will force immediate idle for "+Generics.toTimeFormat(idle)+". Continue (y/n)?");
-							/*String temp = cin.next();*/ // Commented out by Drew
-							jsonIN = getNextRequest();
-							String temp = (String) jsonIN.get("value");
-							if(temp.equalsIgnoreCase("y")){
-								incrementSystemTime(idle, agent);
-//									System.out.println("Inserting idle for "+Generics.toTimeFormat(idle)+".");
-//									System.out.println("CurrentTime: "+Generics.toTimeFormat(getSystemTime()));
-								durationFlag = false;
-							}
-							else if(!temp.equalsIgnoreCase("n")){
-								printToClient("Unexpected response "+temp+"\n");
-							}
-						}
-						else{
-							durationFlag = false;
-						}
-					}while(durationFlag);
-					printToClient("Performing "+actName+" for "+Generics.toTimeFormat(time));
-				}	
-				else{
-					printToClient("Performing "+actName+" for "+interval.toString());
-					time = (int) interval.getLowerBound();
-				}
-				// before executeandadvance we want to add the activity we're performing to our list. 
-				
-				Interval curr_int = new Interval(getSystemTime(), getSystemTime() + time);
-				ongoingActs.add(new SimpleEntry<String,Interval>(actName, curr_int));
-				//System.out.println(ongoingActs);
-//					System.out.println("Starting executeAndAdvance");
-//					System.out.println("Type anything to continue.");
-				//String resp = cin.next();
-				dtp.executeAndAdvance(-getSystemTime(), actName+"_S",-(getSystemTime()+time),actName+"_E",true, time, true);
-//					System.out.println("Finished executeAndAdvance");					
-//					System.out.println("System time is: " + getSystemTime());
-				//Here we want to check to see if there are any concurrent activities
-				if(CONCURRENT){
-					activities = dtp.getActivities(DisjunctiveTemporalProblem.ActivityFinder.TIME, -prevSystemTime.get(agent));
-					printToClient("Concurrent activities are: " + activities);
-					printToClient("Would you like to perform an activity concurrently? Available activities are: " + listAgentActivities(activities,agent));
-					dtp.executeAndAdvance(-prevSystemTime.get(agent), "test_S", -(prevSystemTime.get(agent) + 15), "test_E", true, 15, true);
-					
-				}
-				
-//					System.out.println("SytemTime is " + getSystemTime() + " and MinTime is " + dtp.getMinTime());
-				dtp.simplifyMinNetIntervals();
-//					int new_time =  dtp.getMinTime() - getSystemTime();
-				// The above will move the systemTime to the end of day after the last activity, rather than
-				// leaving the possibility that there could be something after the last required activity, like
-				// processing a sporadic event, or simply choosing to idle out the rest of the day
-				int new_time =  time;
-				incrementSystemTime(new_time, agent);
-//					System.out.println("System time is: " + getSystemTime());
-
-//				}
-			
-			
-				// if this wasn't an actual confirmed activity, we need to undo changes after saving resulting DTP info
-				// This is a copy-paste of the Undo ("U") code
-				if(infoType == "ganttRequest"){
-//					result 	// not sure what I was going here...
-					if(previousDTPs.empty()) {
-//						System.out.println("The schedule has not yet been modified.\n");
-						printToClient("The schedule has not yet been modified.\n");
-						continue;
+						IntervalSet interval = dtp.getInterval(activities.get(currentAgent).get(act)+"_S", activities.get(currentAgent).get(act)+"_E").inverse().subtract(zeroInterval);
+						nextActsMinDur.get(agent).add(String.valueOf( (int) interval.getLowerBound()));
+						nextActsMaxDur.get(agent).add(String.valueOf( (int) interval.getUpperBound()));
 					}
-					System.out.println("Not saving / confirming last selection.");
-//					printToClient("Undoing last selection.");
-					
-					SimpleEntry<Integer, DisjunctiveTemporalProblem> ent = previousDTPs.pop();
-					
-					setSystemTime(ent.getKey());
-					System.out.println("Resetting time to "+Generics.toTimeFormat(getSystemTime()));
-									//dtp = dtpClone(prevDTP, getSystemTime());
-//					printToClient("Resetting time to "+Generics.toTimeFormat(getSystemTime()));
-					dtp = ent.getValue();
-					
-					continue;
+				}		
+						
+				// create 2d vector of min and max durations of all remaining activities
+				// allRemActivities should never include idle
+				// first index is agent num, second index is act ind that coordinates to activities vector
+				ArrayList<ArrayList<String>> remMinDurs = new ArrayList<ArrayList<String>>(); for (int i=0;i<numAgents;i++) remMinDurs.add(new ArrayList<String>());
+				ArrayList<ArrayList<String>> remMaxDurs = new ArrayList<ArrayList<String>>(); for (int i=0;i<numAgents;i++) remMaxDurs.add(new ArrayList<String>());
+
+				for (int agent = 0; agent < numAgents; agent++) {
+					for (int act = 0; act < allRemActivities.get(currentAgent).size(); act++) {
+						IntervalSet interval = dtp.getInterval(allRemActivities.get(currentAgent).get(act)+"_S", allRemActivities.get(currentAgent).get(act)+"_E").inverse().subtract(zeroInterval);
+						remMinDurs.get(agent).add(String.valueOf( (int) interval.getLowerBound()));
+						remMaxDurs.get(agent).add(String.valueOf( (int) interval.getUpperBound()));
+					}
 				}
-					
-				continue;
 				
-			}
-			catch(Exception e){
+				// inform the client of all activity options, including idle
+				sendJSONToClient(
+						"currentChoices", // infoType
+						"TODO", // startTime
+						"", // lastActivity
+						activities.get(currentAgent), // nextActivities
+						nextActsMinDur.get(currentAgent), // nextActsMinDur
+						nextActsMaxDur.get(currentAgent), // nextActsMaxDur
+						new ArrayList<String>(), // remActivities
+						new ArrayList<String>(), // remMinDurs
+						new ArrayList<String>(), // remMaxDurs
+						new ArrayList<String>(), // remMinStarts
+						new ArrayList<String>(), // remMaxEnds
+						new ArrayList<String>()  // debugInfo
+						);
+				
+				// wait for the client to confirm an activity
+				JSONObject inJSON = getNextRequest();
+				
+				String actName = String.valueOf(inJSON.get("activityName"));
+				String actDur = String.valueOf(inJSON.get("activityDuration"));
+				switch ( (String) inJSON.get("infoType")) {
+					case "confirmActivity":
+						if (actName.equals("idle")) {
+							getAndPerformIdle(minTime-getSystemTime(), maxSlack.get(currentAgent), Integer.valueOf(actDur.substring(3)));
+						} else {
+						
+							IntervalSet endTime = dtp.getInterval("zero", actName+"_E");
+							int time = Generics.fromTimeFormat( actDur ); // actDur always comes in minutes
+							int idle = (int) (-endTime.getUpperBound() - getSystemTime() - time);
+							if(idle > 0){	
+								// force immediate idle for "+Generics.toTimeFormat(idle)+"
+								incrementSystemTime(idle, currentAgent);
+							}
+
+							Interval curr_int = new Interval(getSystemTime(), getSystemTime() + time);
+							ongoingActs.add(new SimpleEntry<String,Interval>(actName, curr_int));
+							
+							dtp.executeAndAdvance(-getSystemTime(), actName+"_S",-(getSystemTime()+time),actName+"_E",true, time, true);
+							
+							dtp.simplifyMinNetIntervals();
+							// The above will move the systemTime to the end of day after the last activity, rather than
+							// leaving the possibility that there could be something after the last required activity, like
+							// processing a sporadic event, or simply choosing to idle out the rest of the day
+							int new_time =  time;
+							incrementSystemTime(new_time, currentAgent);
+						}
+						
+						break;
+					
+					default:
+						break;
+					
+				}
+				
+			} catch (Exception e) {
 				System.err.println("Error.  Please try again.\n"+e.toString()+"\n"+Arrays.toString(e.getStackTrace()));
 				System.err.flush();
 			}
 		}
-//		cin.close();
 	}
+	
 	
 	private static boolean disjunctivelyUncertainProblem(DisjunctiveTemporalProblem dtp) {
 		if ((dtp instanceof DUTP) || (dtp instanceof DUSTP)) {
@@ -491,6 +338,7 @@ public class InteractionStageGUI implements Runnable {
 		return let;
 		}
 	
+/*
 	private static void processSporadicEvent(String last_act) {
 		if(last_act.length() == 0){
 			printToClient("No activities have been performed yet...");
@@ -500,14 +348,12 @@ public class InteractionStageGUI implements Runnable {
 			return;
 		}
 		printToClient("Did a sporadic event occur during the previous activity or since the last check in time? (y/n)");
-		/*String resp = cin.next();*/ // Commented out by Drew
 		JSONObject jsonIN = getNextRequest();
 		String resp = (String) jsonIN.get("value");
 		
 		if(resp.equalsIgnoreCase("y")){
 			SPORADIC_OCCURRED = true;
 			printToClient("At what time did the sporadic event happen? ");
-			/*String time = cin.next();*/ // Commented out by Drew
 			jsonIN = getNextRequest();
 			String time = (String) jsonIN.get("value");
 			if(true) {
@@ -547,6 +393,7 @@ public class InteractionStageGUI implements Runnable {
 		}
 		
 	}
+*/
 	
 	public static boolean requiredActivity(String actname) {
 		return (!(actname.equals("skip")) || (actname.equals("idle")));
@@ -563,6 +410,7 @@ public class InteractionStageGUI implements Runnable {
 		return min;
 	}
 
+/*
 	private static void performPreemptive(String str) {
 		if(str.equalsIgnoreCase("y")){
 			printToClient("Performing Preemptive activity for 20 minutes.");
@@ -577,30 +425,24 @@ public class InteractionStageGUI implements Runnable {
 			return;
 		}
 	}
+*/
 
 	private static void getAndPerformIdle(int minIdle, int maxIdle, int time){
-		//minIdle = Math.max(minIdle,  0);
-		//maxIdle = Math.min(maxIdle, MAX_LET - getSystemTime());
-		//printToClient("How long to idle? Possible range {["+Generics.toTimeFormat(minIdle)+", "+Generics.toTimeFormat(maxIdle)+"]}");
-		//JSONObject jsonIN = getNextRequest();
-		//String temp = (String) jsonIN.get("value");
-		//int time = Generics.fromTimeFormat(temp);
-		/*int time = Generics.fromTimeFormat(cin.next());*/ // Commented out by Drew
 		if(time < 0 || time > maxIdle){
-			printToClient("Unexpected response \""+Integer.toString(time)+"\"");
+			System.out.println("Unexpected response \""+Integer.toString(time)+"\"");
 			return;
 		}
 		incrementSystemTime(time, currentAgent);
 		dtp.advanceToTime(-getSystemTime(), time, true);
 		dtp.simplifyMinNetIntervals();
 	}
-	
+
+/*
 	private static void getAndPerformEmergencyIdle(String str){
 		printToClient("How long to idle? Format for input is H:MM");
 		JSONObject jsonIN = getNextRequest();
 		String temp = (String) jsonIN.get("value");
 		int time = Generics.fromTimeFormat(temp);
-		/*int time = Generics.fromTimeFormat(cin.next());*/ // commented out by Drew
 		if(time < 0){
 			printToClient("Unexpected response \""+str+"\"");
 			return;
@@ -618,7 +460,9 @@ public class InteractionStageGUI implements Runnable {
 			//for(Timepoint tp : uftps) System.out.println(tp.getName());
 		}
 	}
+*/
 	
+/*
 	private static void printRequestedOutput(String option){
 		if(option.equalsIgnoreCase("D")){
 			if(prevDTP == null) printToClient("You have not yet made a choice or have just undone a choice.");
@@ -636,13 +480,14 @@ public class InteractionStageGUI implements Runnable {
 		}
 		return;
 	}
+*/
 	
+/*
 	private static void advancedSelection(){
 		//TODO: some of these option are causing errors in the idle time calculations, needs to be fixed
 		printToClient("Select from advanced options:\n(G)et interval\ntighten activity (D)uration\ntighten activity (A)vailability\nadd new inter-activity (C)onstraint\nadd (N)ew activity");
 		JSONObject jsonIN = getNextRequest();
 		String str = (String) jsonIN.get("value");
-		/*String str = cin.next();*/ // Commented out by Drew
 		
 		//get interval between two timepoints
 		if(str.equalsIgnoreCase("G")){
@@ -723,16 +568,15 @@ public class InteractionStageGUI implements Runnable {
 			//System.out.println("timepoint added to SUBDTP "+id);
 			//add in nonconcurrency constraints (make this so the user can choose??
 			Collection<String> tpNames = dtp.getActivityNames(id);
-			/**
-			for(String tpOne : tpNames){
-					
-					//String tpOne = tpNames.get(w);
-					if(tpOne.equals(new_act)) continue;
-					dtp.addNonconcurrentConstraint(tpOne, new_act, id);
-					//System.out.println("adding nonconcurrency constraint between "+tpOne+" "+new_act);
-				
-			}
-			**/
+//			
+//			for(String tpOne : tpNames){
+//					
+//					//String tpOne = tpNames.get(w);
+//					if(tpOne.equals(new_act)) continue;
+//					dtp.addNonconcurrentConstraint(tpOne, new_act, id);
+//					//System.out.println("adding nonconcurrency constraint between "+tpOne+" "+new_act);
+//				
+//			}
 			//((SimpleDTP) dtp).addNonconcurrentConstraint("wakeup", new_act);
 			//((SimpleDTP) dtp).addOrderingConstraint("wakeup", new_act,0,Integer.MAX_VALUE);
 			//((SimpleDTP) dtp).addOrderingConstraint(new_act, "toSchool",0,Integer.MAX_VALUE);
@@ -760,7 +604,7 @@ public class InteractionStageGUI implements Runnable {
 		dtp.simplifyMinNetIntervals();
 	
 	}
-	
+*/
 	
 	/*
 	 * The following set of get-/set-/increment- SystemTime function should be used to interface the system clock rather than directly accessing things 
@@ -821,17 +665,18 @@ public class InteractionStageGUI implements Runnable {
 	 * @param time
 	 * @param msg
 	 */
-	private static void getIntervalSetAndAdd(String tpS, String tpE, int time, String msg){
+/*	private static void getIntervalSetAndAdd(String tpS, String tpE, int time, String msg){
 		printToClient(msg+"\nEnter new interval set or (n) to leave unchanged. Format {[interval1]v[interval2]v...} with no whitespace.");
 		JSONObject jsonIN = getNextRequest();
 		String avail = (String) jsonIN.get("value");
-		/*String avail = cin.next();*/ // Commented out by Drew
+		String avail = cin.next(); // Commented out by Drew
 		if(!avail.equalsIgnoreCase("N")){
 			IntervalSet is = Generics.stringToInterval(avail);
 			dtp.addAdditionalConstraint(tpS, tpE, is, time, true, true);	
 			dtp.simplifyMinNetIntervals();
 		}		
 	}
+*/
 	
 	/**
 	 * ui helper code to prompt a user to select a timepoint from a
@@ -839,15 +684,15 @@ public class InteractionStageGUI implements Runnable {
 	 * @param getStartEnd toggles whether to prompt user to specify between start/end timepoint
 	 * @return
 	 */
-	private static String getTimepoint(Collection<String> a, boolean getStartEnd){
+/*	private static String getTimepoint(Collection<String> a, boolean getStartEnd){
 		JSONObject jsonIN = getNextRequest();
 		String tp = (String) jsonIN.get("value");
-		/*String tp = cin.next();*/ // Commented out by Drew
+//		String tp = cin.next(); // Commented out by Drew
 		while(!a.contains(tp)){
 			printToClient("Unexpected response \""+tp+"\"");
 			jsonIN = getNextRequest();
 			tp = (String) jsonIN.get("value");
-			/*tp = cin.next();*/ // Commented out by Drew
+//			tp = cin.next(); // Commented out by Drew
 		}
 		if(tp.equals("zero")) return tp; 
 		boolean flag = getStartEnd;
@@ -855,7 +700,7 @@ public class InteractionStageGUI implements Runnable {
 			printToClient("From (s)tart or (e)nd time of "+tp+"?");
 			jsonIN = getNextRequest();
 			String str = (String) jsonIN.get("value");
-			/*String str = cin.next();*/ // Commented out by Drew
+//			String str = cin.next(); // Commented out by Drew
 			while(flag){
 				flag = false;
 				if(str.equalsIgnoreCase("S")) tp += "_S";
@@ -864,13 +709,14 @@ public class InteractionStageGUI implements Runnable {
 					printToClient("Unexpected response \""+str+"\"");
 					jsonIN = getNextRequest();
 					str = (String) jsonIN.get("value");
-					/*str = cin.next();*/ // Commented out by Drew
+//					str = cin.next(); // Commented out by Drew
 					flag = true;
 				}
 			}
 		}
 		return tp;
 	}
+*/
 	
 	private static void getAgentSelection(){
 		do{
@@ -960,49 +806,81 @@ public class InteractionStageGUI implements Runnable {
 		return outStr;
 	}
 	
-	/*
-	 * This class sends a JSON message to the client to print out for the user to see
-	 * Author: Drew
-	 * For now, it will save a JSON file that acts as a queue containing the things
-	 * that the server wants to print. Will be flushed (erased) once the client sends a
-	 * GET request and gets it
-	 */
-	private static void printToClient(String msg) {
-		File tmpDir = new File("JSON_to_client.json");
-		FileWriter fout;
-		try {
-			if (tmpDir.exists()) { // if the file already exists, read in JSON then edit it / add to it
-			
-				JSONParser parser = new JSONParser();
-				Object fileIN = parser.parse(new FileReader("JSON_to_client.json"));
-				JSONObject jsonIN = (JSONObject) fileIN;
-				if (!tmpDir.delete()) { // delete the JSON file after receiving it
-					System.out.println("Error: Failed to delete to_client file when writing.");
-					// if you fail to delete this, do not send anything
-					return;
-				}
-				
-				msg = (String)jsonIN.get("toPrint") + '\n' + msg;
-				
-			}
-			
-			fout = new FileWriter("JSON_to_client.json");
-
-			
-			// JSON will have object {toPrint : someMessage}
-			JSONObject jsonObj = new JSONObject();
-			jsonObj.put("toPrint", msg);
+//	/*
+//	 * This class sends a JSON message to the client to print out for the user to see
+//	 * Author: Drew
+//	 * For now, it will save a JSON file that acts as a queue containing the things
+//	 * that the server wants to print. Will be flushed (erased) once the client sends a
+//	 * GET request and gets it
+//	 */
+//	private static void printToClient(String msg) {
+//		File tmpDir = new File("JSON_to_client.json");
+//		FileWriter fout;
+//		try {
+//			if (tmpDir.exists()) { // if the file already exists, read in JSON then edit it / add to it
+//			
+//				JSONParser parser = new JSONParser();
+//				Object fileIN = parser.parse(new FileReader("JSON_to_client.json"));
+//				JSONObject jsonIN = (JSONObject) fileIN;
+//				if (!tmpDir.delete()) { // delete the JSON file after receiving it
+//					System.out.println("Error: Failed to delete to_client file when writing.");
+//					// if you fail to delete this, do not send anything
+//					return;
+//				}
+//				
+//				msg = (String)jsonIN.get("toPrint") + '\n' + msg;
+//				
+//			}
+//			
+//			fout = new FileWriter("JSON_to_client.json");
+//
+//			
+//			// JSON will have object {toPrint : someMessage}
+//			JSONObject jsonObj = new JSONObject();
+//			jsonObj.put("toPrint", msg);
+//	
+//			System.out.println("Server output: " + msg);
+//			fout.write(jsonObj.toJSONString()); // write the JSON to a string to the file
+//			
+//			
+//			fout.close();
+//			
+//		} catch (Exception e) {
+//			System.err.println("Error while writing to_client file");
+//			System.err.flush();
+//		}
+//	}
 	
-			System.out.println("Server output: " + msg);
-			fout.write(jsonObj.toJSONString()); // write the JSON to a string to the file
-			
-			
-			fout.close();
-			
+	@SuppressWarnings("unchecked")
+	private void sendJSONToClient(
+			String infoType, String startTime, String lastActivity, List<String> nextActivities,
+			List<String> nextActsMinDur, List<String> nextActsMaxDur, List<String> remActivities,
+			List<String> remMinDurs, List<String> remMaxDurs, List<String> remMinStarts,
+			List<String> remMaxEnds, List<String> debugInfo) {
+		
+		System.out.println("Sending '"+infoType+"' JSON to client");
+		
+		JSONObject outJSON = new JSONObject();
+		outJSON.put("infoType", infoType);
+		outJSON.put("startTime", startTime);
+		outJSON.put("lastActivity", lastActivity);
+		outJSON.put("nextActivities", nextActivities);
+		outJSON.put("nextActsMinDur", nextActsMinDur);
+		outJSON.put("nextActsMaxDur", nextActsMaxDur);
+		outJSON.put("remActivities", remActivities);
+		outJSON.put("remMinDurs", remMinDurs);
+		outJSON.put("remMaxDurs", remMaxDurs);
+		outJSON.put("remMinStarts", remMinStarts);
+		outJSON.put("remMaxEnds", remMaxEnds);
+		outJSON.put("debugInfo", debugInfo);
+		
+		try {
+			toClientQueue.put(outJSON);
 		} catch (Exception e) {
-			System.err.println("Error while writing to_client file");
+			System.err.println("Error while adding to toClientQueue");
 			System.err.flush();
 		}
+		
 	}
 
 	/*
@@ -1011,45 +889,60 @@ public class InteractionStageGUI implements Runnable {
 	 * For now, we will ignore the possibility of needing to ping the server and re-request information
 	 * This should only be called when the program cannot do anything until it hears from the client
 	 */
-	private static JSONObject getNextRequest() {
-		while (true) {
-			JSONObject jsonIN = new JSONObject();
-			try {
-				// the server thread will be constantly running in the background looking for
-				// requests from the client
-				// Once it receives one, it will save the JSON as a file called JSON_from_client.json
-				// wait until the server gets a response from the client before continuing
-				File tmpDir = new File("JSON_from_client.json");
-				while( !tmpDir.exists() ) {
-					Thread.sleep(100);
-					tmpDir = new File("JSON_from_client.json");
+	private JSONObject getNextRequest() {
+		JSONObject jsonIN = new JSONObject();
+		try {
+			while (true) {
+				Thread.sleep(100);
+				if (fromClientQueue.size() > 0) {
+					jsonIN = fromClientQueue.poll();
+					break;			
 				}
-				if (tmpDir.length() == 0) {
-					tmpDir.delete();
-					continue;
-				}
-				
-				JSONParser parser = new JSONParser();
-				Object fileIN = parser.parse(new FileReader("JSON_from_client.json"));
-				if (!tmpDir.delete()) { // delete the JSON file after receiving it
-					System.out.println("Error: Failed to delete file.");
-				}
-				
-				jsonIN = (JSONObject) fileIN;
-				
-			} catch (Exception e) {
-				System.err.println("Error while waiting in getNextRequest()");
-				System.err.println(e);
-				System.err.flush();
 			}
-			
-			if (!jsonIN.isEmpty()) {
-				// if (jsonIN.get("value").equals("RESTART")) {Thread.currentThread().interrupt();} // no longer needed with GUI interface
-				System.out.println("User command type: " + (String)jsonIN.get("infoType"));
-				return jsonIN;
-			}
+		} catch (Exception e) {
+			System.err.println("Error while waiting in getNextRequest()");
+			System.err.println(e);
+			System.err.flush();
 		}
+		return jsonIN;
+			
+//			try {
+//				// the server thread will be constantly running in the background looking for
+//				// requests from the client
+//				// Once it receives one, it will save the JSON as a file called JSON_from_client.json
+//				// wait until the server gets a response from the client before continuing
+//				File tmpDir = new File("JSON_from_client.json");
+//				while( !tmpDir.exists() ) {
+//					Thread.sleep(100);
+//					tmpDir = new File("JSON_from_client.json");
+//				}
+//				if (tmpDir.length() == 0) {
+//					tmpDir.delete();
+//					continue;
+//				}
+//				
+//				JSONParser parser = new JSONParser();
+//				Object fileIN = parser.parse(new FileReader("JSON_from_client.json"));
+//				if (!tmpDir.delete()) { // delete the JSON file after receiving it
+//					System.out.println("Error: Failed to delete file.");
+//				}
+//				
+//				jsonIN = (JSONObject) fileIN;
+//				
+//			} catch (Exception e) {
+//				System.err.println("Error while waiting in getNextRequest()");
+//				System.err.println(e);
+//				System.err.flush();
+//			}
+//			
+//			if (!jsonIN.isEmpty()) {
+//				// if (jsonIN.get("value").equals("RESTART")) {Thread.currentThread().interrupt();} // no longer needed with GUI interface
+//				System.out.println("User command type: " + (String)jsonIN.get("infoType"));
+//				return jsonIN;
+//			}
+//		}
 		
 	}
 	
 }
+

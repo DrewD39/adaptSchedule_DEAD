@@ -37,7 +37,7 @@ class client {
             JSON_encoder.outputFormatting = .prettyPrinted
             
             // URL to access server at, appended by client ID to validate access
-            urlString = "http://localhost:8080/" + ID
+            urlString = "http://35.3.95.42:8080/" + ID
             
             url = URL(string: urlString)
             
@@ -82,6 +82,9 @@ class client {
             aReq.httpBody = json
             
             makeAReq(req: aReq)
+            
+            print("\nJSON sent to server:")
+            print(thePut)
         } catch let error as NSError {
             print(error)
         }
@@ -109,12 +112,12 @@ class client {
                 // if the reply info type is not blank, parse the data
                 if (servData.infoType != "") {
                     print("\nJSON received from server:")
-                    self.currentInfo.infoType = servData.infoType!;             print("  infoType: ", terminator:"");        print(servData.infoType!)
-                    self.currentInfo.startTime = servData.startTime!;           print("  startTime: ", terminator:"");       print(servData.infoType!)
-                    self.currentInfo.nextActivities = servData.nextActivities!;  print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
-                    self.currentInfo.actsMinDur = servData.actsMinDur!;         print("  actsMinDur: ", terminator:"");      print(servData.actsMinDur!)
-                    self.currentInfo.actsMaxDur = servData.actsMaxDur!;         print("  actsMaxDur: ", terminator:"");      print(servData.actsMaxDur!)
-                    self.currentInfo.debugInfo = servData.debugInfo!;           print("  debugInfo: ", terminator:"");       print("~suppressed for readability~")//print(servData.debugInfo!)
+                    self.currentInfo.infoType = servData.infoType!;                     print("  infoType: ", terminator:"");        print(servData.infoType!)
+                    self.currentInfo.startTime = servData.startTime!;                   print("  startTime: ", terminator:"");       print(servData.infoType!)
+                    self.currentInfo.nextActivities = servData.nextActivities!;         print("  nextActivities: ", terminator:"");  print(servData.nextActivities!)
+                    self.currentInfo.nextActsMinDur = servData.nextActsMinDur!;         print("  actsMinDur: ", terminator:"");      print(servData.nextActsMinDur!)
+                    self.currentInfo.nextActsMaxDur = servData.nextActsMaxDur!;         print("  actsMaxDur: ", terminator:"");      print(servData.nextActsMaxDur!)
+                    self.currentInfo.debugInfo = servData.debugInfo!;                   print("  debugInfo: ", terminator:"");       print("~suppressed for readability~")//print(servData.debugInfo!)
                 }
                 
             } catch let error as NSError {
@@ -164,19 +167,29 @@ struct fromServer: Codable {
     // do not make these optional, because we want to throw error if some of the data is missing
     // (unecesary components should be included as blank strings / empty vectors)
     var infoType : String?
-    var nextActivities : [String]?
     var startTime: String?
-    var actsMinDur : [String]?
-    var actsMaxDur : [String]?
-    var debugInfo : [String]?
+    var nextActivities : [String]?
+    var nextActsMinDur : [String]?
+    var nextActsMaxDur : [String]?
+    var remActivities  : [String]?
+    var remMinDurs     : [String]?
+    var remMaxDurs     : [String]?
+    var remMinStarts   : [String]?
+    var remMaxEnds     : [String]?
+    var debugInfo      : [String]?
     
     init() {
-         infoType = ""
-         nextActivities = []
-         startTime = ""
-         actsMinDur = []
-         actsMaxDur = []
-         debugInfo = []
+        infoType = ""
+        startTime = ""
+        nextActivities = []
+        nextActsMinDur = []
+        nextActsMaxDur = []
+        remActivities  = []
+        remMinDurs     = []
+        remMaxDurs     = []
+        remMinStarts   = []
+        remMaxEnds     = []
+        debugInfo      = []
     }
 }
 
